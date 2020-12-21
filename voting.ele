@@ -1,0 +1,133 @@
+
+sig Ballot {
+	ballot: one Int
+}
+
+sig Value{}
+
+sig Acceptor{
+	var votes: Ballot->Value,
+	var maxBal: one Ballot
+}
+
+
+
+sig Quorum {
+	quorum: set Acceptor
+}
+
+
+pred increaseMaxBal[a: Acceptor, b: Ballot] {
+	b.ballot > a.maxBal.ballot
+	a.maxBal' = b
+	a.votes' = a.votes
+	all acc: Acceptor - a | acc.maxBal' = acc.maxBal and acc.votes' = acc.votes
+}
+
+pred nop {
+	votes' = votes
+	maxBal' = maxBal
+}
+
+
+pred votedFor[a: Acceptor, b: Ballot, v: Value]{
+	a.votes = b->v
+}
+
+
+/*
+Permitir que um acceptor vote em um valor v com o ballot número b, desde que 
+nenhum valor diferente de v foi ou será escolhido em qualquer ballot com 
+número inferior a b
+*/
+pred showsSafeAt[q: Quorum, b: Ballot, v: Value]{
+	//from now on, no acceptor in Q can ever vote in any ballot < b - TODO
+	//always (all acc: Quorum.quorum | acc.maxBal.ballot >= b.ballot implies no acc.votes.Value.ballot & b.ballot)
+	/*	For some c with either c= -1 or c is a ballot number < b
+		Either c = -1 or some acceptor acc in q voted for v in ballot c
+		No acceptor in q voted in any ballot d with c < d < b
+	*/
+	always (some acc: Quorum.quorum, c: Ballot | c.ballot > -1  and c.ballot < b.ballot implies c->v in acc.votes)
+	always (all acc: Quorum.quorum | some c, d: Ballot |  c.ballot > -1  and c.ballot < b.ballot and d.ballot > c.ballot
+			 and d.ballot < b.ballot implies no acc.votes.Value.ballot & d.ballot)
+}
+
+
+pred voteFor[a: Acceptor, b: Ballot, v: Value]{
+	a.maxBal.ballot <= b.ballot
+	//este acceptor não votou ainda no ballot b
+	no b.ballot & a.votes.Value.ballot
+	//os outros acceptors se já votaram naquele b então o seu valor é v acho que não excluo a possibilidade de existir b->w
+	all acc: Acceptor - a | acc.votes.Value.ballot = b.ballot implies b->v in acc.votes
+	some q: Quorum | showsSafeAt[q, b, v]
+	a.votes' = a.votes + b->v
+	all acc: Acceptor - a | acc.votes' = acc.votes
+	a.maxBal.ballot' = b.ballot 
+	all maxB : Acceptor.maxBal - a.maxBal | maxB' = maxB
+	
+}
+
+pred chosenAt[b: Ballot, v: Value] {
+	always (some q: Quorum | all a: q.quorum |  votedFor[a,b,v])
+}
+
+//Definição de quorum
+fact QuorumAssumption{
+	always (all q1, q2: Quorum | some q1.quorum and some q2.quorum
+                     and q1.quorum in Acceptor and q2.quorum in Acceptor 
+			and some q1.quorum & q2.quorum )
+}
+
+
+
+fact Init {
+	no Acceptor.votes
+	all acc: Acceptor | acc.maxBal.ballot = -1
+	all b: Ballot | b.ballot >= -1
+	all disj b1, b2 : Ballot | no b1.ballot & b2.ballot
+}
+
+fact Next {
+	always (nop or some acc: Acceptor, b: Ballot | increaseMaxBal[acc, b] or some v: Value | voteFor[acc, b, v])
+}
+
+
+fact Chosen {
+	eventually (some v: Value, b: Ballot | chosenAt[b,v])
+}
+
+
+pred oneVote {
+	always (all a: Acceptor, b: Ballot, v, w: Value | votedFor[a,b,v] and votedFor[a,b,w] implies v=w)
+}
+
+pred oneVotePerBallot{
+	always(all a1, a2: Acceptor, b: Ballot, v1, v2: Value | votedFor[a1,b,v1] and votedFor[a2,b,v2] implies v1=v2)
+}
+
+fact consistencyInVotes {
+	always oneVotePerBallot implies oneVote
+}
+
+pred didNotVoteAt[a: Acceptor, b: Ballot] {
+	all v: Value | !(votedFor[a,b,v])
+}
+
+pred noneOtherChoosebleAt[b: Ballot, v: Value] {
+	some q: Quorum | all a: q.quorum | votedFor[a,b,v] or (a.maxBal.ballot > b.ballot and didNotVoteAt[a,b])
+}
+
+fact Choosable {
+	always(all b: Ballot, v: Value | chosenAt[b,v] implies noneOtherChoosebleAt[b, v])
+}
+
+
+
+
+run{ 
+		
+} for exactly 3 Acceptor, exactly 2 Value, exactly 5 Ballot, exactly 4 Quorum
+
+
+
+
