@@ -25,7 +25,6 @@ pred preIncreaseMaxBal[a: Acceptor, b: Ballot] {
 pred increaseMaxBal[a: Acceptor, b: Ballot] {
 	preIncreaseMaxBal[a,b]
 	a.maxBal' = b
-	a.maxBal.ballot' = b.ballot
 	a.votes' = a.votes
 	all acc: Acceptor - a | acc.maxBal' = acc.maxBal and acc.votes' = acc.votes
 }
@@ -48,7 +47,7 @@ nenhum valor diferente de v foi ou será escolhido em qualquer ballot com
 número inferior a b
 */
 pred showsSafeAt[q: Quorum, b: Ballot, v: Value]{
-	//from now on, no acceptor in Q can ever vote in any ballot < b - TODO
+	//from now on, no acceptor in Q can ever vote in any ballot < b
 	all acc: q.quorum | acc.maxBal.ballot >= b.ballot
 	/*	For some c with either c= -1 or c is a ballot number < b
 		Either c = -1 or some acceptor acc in q voted for v in ballot c
@@ -90,6 +89,7 @@ pelo menos, um acceptor em comum, ou seja, a intersepção dos conjuntos tem
 de ser diferente de vazio.
 */
 fact QuorumAssumption{
+	some Quorum
 	always (all q1, q2: Quorum | some q1.quorum and some q2.quorum
                      and q1.quorum in Acceptor and q2.quorum in Acceptor 
 			and some q1.quorum & q2.quorum )
@@ -106,7 +106,8 @@ fact Init {
 	all acc: Acceptor | acc.maxBal.ballot = -1
 	all b: Ballot | b.ballot >= -1
 	all disj b1, b2 : Ballot | no b1.ballot & b2.ballot
-        #Ballot >= 2 
+        #Ballot >= 2
+	#Acceptor > 2
 }
 
 
@@ -115,7 +116,7 @@ Uma transição de estado implica um acceptor aumentar o seu maxBal, votar
 num determinado Ballot ou não acontecer nada
 */
 fact Next {
-	always (nop or some acc: Acceptor, b: Ballot | increaseMaxBal[acc, b] or some v: Value | voteFor[acc, b, v])
+	always (some acc: Acceptor | some b: Ballot | increaseMaxBal[acc, b] or some v: Value | voteFor[acc, b, v] or nop)
 }
 
 
@@ -129,7 +130,7 @@ pred chosenAt[b: Ballot, v: Value] {
 Inevitavelmente existe um ballot e um valor que vão ser escolhidos por um quorum
 */
 assert Chosen {
-	eventually (some v: Value, b: Ballot | chosenAt[b,v])
+	some v: Value, b: Ballot | eventually always chosenAt[b,v]
 }
 
 /*
@@ -169,14 +170,24 @@ assert Choosable {
 	always(all b: Ballot, v: Value | chosenAt[b,v] implies noneOtherChoosableAt[b, v])
 }
 
+/*
+Se for possível incrementar inevitavelmente vai incrementar o ballot
+*/
 fact weakFairness {
-	always (all a: Acceptor| some b: Ballot, v: Value | (always eventually preForVoting[a,b,v]) implies (always eventually voteFor[a, b, v]))
-	always (all a: Acceptor | some b: Ballot | (always eventually preIncreaseMaxBal[a,b]) implies (always eventually increaseMaxBal[a, b]))
+	some a: Acceptor, b: Ballot, v: Value | (always eventually preForVoting[a,b,v]) implies (always eventually voteFor[a, b, v])
+	all a: Acceptor | all b: Ballot | (eventually always preIncreaseMaxBal[a,b]) implies (always eventually increaseMaxBal[a, b])
+
 }
 
 
-check Chosen
+/*
+check Increment {
+	some q: Quorum | all a: q.quorum | eventually always (a.maxBal.ballot > -1)
+}
+*/
 
+
+check Chosen
 
 check Choosable
 
