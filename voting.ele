@@ -1,5 +1,5 @@
 
-sig Ballot {
+sig Ballot{
 	ballot: one Int
 }
 
@@ -68,7 +68,8 @@ pred preForVoting[a: Acceptor, b: Ballot, v: Value] {
 	//este acceptor não votou ainda no ballot b
 	no b.ballot & a.votes.Value.ballot
 	//os outros acceptors se já votaram naquele b então o seu valor é v acho que não excluo a possibilidade de existir b->w
-	all acc: Acceptor - a | some xb: Ballot, xv: Value | xb->xv in acc.votes and b.ballot = xb.ballot implies xv = v
+	all acc: Acceptor - a | some xb: Ballot, xv: Value | b->xv in acc.votes and b.ballot = xb.ballot implies xv = v
+	some b.ballot & acc.votes.Value.ballot implies (all vote : b. | vote.value = v) 
 	some q: Quorum | showsSafeAt[q, b, v]
 }
 

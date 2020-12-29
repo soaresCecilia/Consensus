@@ -1,0 +1,140 @@
+open util/ordering[Ballots]
+open util/ternary
+
+sig Acceptor{
+	var maxBal : one Ballots
+}
+
+abstract sig Ballots{}
+
+sig Ballot extends Ballots{
+	var votes : Acceptor -> lone Value
+}
+
+one sig bottom extends Ballots{}
+
+sig Quorum{
+	quorum: set Acceptor
+}
+
+sig Value{}
+
+var lone sig chosen in Value {}
+
+fun voters : Ballot -> Acceptor {
+	select12[votes]
+}
+
+fact Init{
+	min[Ballots] = bottom
+	some Acceptor
+	some Ballot
+	all disj q1,q2:Quorum | some q1.quorum & q2.quorum
+	some quorum
+	no Ballot.votes
+	no chosen
+	some Value
+	maxBal = Acceptor -> bottom
+}
+
+//this function returns the set of all Acceptors that voted for Value v in Ballot b
+fun votersAt[b:Ballot, v:Value] : set Acceptor{
+	{a:Acceptor | b->a->v in votes}
+}
+
+//Acceptor a voted for Value v in Ballot b
+pred votedFor[a:Acceptor,b:Ballot,v:Value]{
+	b->a->v in votes
+}
+
+//A value is chosen if every member of the quorum voted for it
+pred chosenAt[q:Quorum, b:Ballot,v:Value]{
+	q.quorum in votersAt[b,v]
+	chosen' = v
+}
+
+fun between[c:Ballots, b:Ballot] : set Ballot{
+	nexts[c] & prevs[b]
+}
+
+//show it is safe to vote for Value v in Ballot b
+pred showSafeAt[q:Quorum, b:Ballots, v:Value]{
+	//no acceptor can vote in any Ballot < b
+	all a : q.quorum | gte[a.maxBal,b]
+	some c : prevs[b]{
+		//if acceptors have cast votes they were on v
+		(c not in bottom) implies (some a : q.quorum | votedFor[a,c,v])
+		//for ballots between c and b, no votes have been cast by any member of the quorum
+		all d : between[c,b] , a : q.quorum | not (votedFor[a,d,v])
+	}
+}
+
+pred increaseMaxBal[a:Acceptor, b:Ballot]{
+	lt[a.maxBal,b]
+	maxBal' = maxBal ++ a->b
+	votes' = votes
+	chosen' = chosen
+}
+
+pred preForVoting[a: Acceptor, b: Ballot, v: Value] {
+	lte[a.maxBal,b]
+	//este acceptor não votou ainda no ballot b
+	no b.votes.Value & a
+	//os outros acceptors se já votaram naquele b então o seu valor é v acho que não excluo a possibilidade de existir b->w
+	all acc: Acceptor - a | some (b->acc->Value & votes) implies b->acc->v in votes
+	some q:Quorum | showSafeAt[q,b,v]
+}
+
+pred voteFor[a: Acceptor, b: Ballot, v: Value]{
+	preForVoting[a,b,v]
+	maxBal' = maxBal ++ a->b
+	votes' = votes ++ b->a->v
+	chosen' = chosen
+}
+
+pred nop{
+	maxBal' = maxBal
+	votes'  = votes
+	chosen' = chosen
+}
+
+fact Next{
+	always (some b:Ballot, a:Acceptor{
+		increaseMaxBal[a,b] or (some v:Value | voteFor[a,b,v]) or nop
+	})
+}
+
+//Every ballot only has votes for 1 value
+pred noneOtherChoosableAt[b: Ballot, v: Value] {
+	//all a : b.quorum | votedFor[a,b,v] or (gte[a.maxBal,b] and (a not in votersAt[b,v]))
+}
+
+assert Choosable {
+	//always(all b: Ballot, v: Value | chosenAt[b,v] implies noneOtherChoosableAt[b, v])
+}
+
+//
+assert Chosen {
+//	some v: Value, b: Ballot | eventually always chosenAt[b,v]
+}
+
+//There are only votes for one value in each ballot
+assert consistencyInVotes {
+//	always (all b:Ballot | lone Acceptor.(b.votes))
+}
+
+check Choosable
+check consistencyInVotes
+
+
+run Test{
+	eventually(some b:Ballot,q:Quorum,v:Value | chosenAt[q,b,v] and #q.quorum>1)
+	
+} for exactly 10 Ballot, exactly 3 Acceptor, exactly 1 Value, 3 Quorum
+
+run Chosen{
+	eventually( (some q:Quorum | some voters.(q.quorum) and #q.quorum>1))
+	
+} for exactly 10 Ballot, exactly 3 Acceptor, exactly 1 Value, 3 Quorum
+
+//usar b->subset Acceptor (possible quorums) to quantify

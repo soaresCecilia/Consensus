@@ -28,5 +28,5 @@ run{
 } for exactly 5 Values
 
 check Sucess{
-	eventually some chosen'
+	eventually some chosen
 }
