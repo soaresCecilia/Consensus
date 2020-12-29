@@ -29,8 +29,10 @@ fact Init{
 	min[Ballots] = bottom
 	some Acceptor
 	some Ballot
+
 	all disj q1,q2:Quorum | some q1.quorum & q2.quorum
-	some quorum
+	all q:Quorum | some q.quorum
+
 	no Ballot.votes
 	no chosen
 	some Value
@@ -61,11 +63,12 @@ fun between[c:Ballots, b:Ballot] : set Ballot{
 pred showSafeAt[q:Quorum, b:Ballots, v:Value]{
 	//no acceptor can vote in any Ballot < b
 	all a : q.quorum | gte[a.maxBal,b]
+	//ir buscar o valor do maior ballot votado por alguém do quorum, para ballots inferiores a b
 	some c : prevs[b]{
 		//if acceptors have cast votes they were on v
-		(c not in bottom) implies (some a : q.quorum | votedFor[a,c,v])
+		(c != bottom) implies (some a : q.quorum | votedFor[a,c,v])
 		//for ballots between c and b, no votes have been cast by any member of the quorum
-		all d : between[c,b] , a : q.quorum | not (votedFor[a,d,v])
+		all d : between[c,b] , a : q.quorum | all v1:Value | not (votedFor[a,d,v1])
 	}
 }
 
@@ -81,7 +84,9 @@ pred preForVoting[a: Acceptor, b: Ballot, v: Value] {
 	//este acceptor não votou ainda no ballot b
 	no b.votes.Value & a
 	//os outros acceptors se já votaram naquele b então o seu valor é v acho que não excluo a possibilidade de existir b->w
-	all acc: Acceptor - a | some (b->acc->Value & votes) implies b->acc->v in votes
+	all acc: Acceptor - a{  
+		some (b & (votes.Value).acc) implies (some value : acc.(b.votes) | value = v) 
+	}
 	some q:Quorum | showSafeAt[q,b,v]
 }
 
@@ -99,8 +104,8 @@ pred nop{
 }
 
 fact Next{
-	always (some b:Ballot, a:Acceptor{
-		increaseMaxBal[a,b] or (some v:Value | voteFor[a,b,v]) or nop
+	always (some b:Ballot, a:Acceptor, v:Value{
+		increaseMaxBal[a,b] or voteFor[a,b,v] or nop
 	})
 }
 
