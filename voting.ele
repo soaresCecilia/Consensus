@@ -50,14 +50,14 @@ pred showsSafeAt[q: Quorum, b: Ballot, v: Value]{
 	all acc: q.quorum | gte[acc.maxBal, b]
 	//ir buscar o valor do maior ballot votado por alguém do quorum, para ballots inferiores a b
 	//quando c é vazio (ainda não houve votos), nenhum membro vota mas pode incrementar o maxBal)
-	//let c = max[prevs[b] & q.quorum.votes.Value] | c.(Acceptor.votes) = v
+	let c = max[prevs[b] & q.quorum.votes.Value] | some c implies c.(Acceptor.votes) = v
  														
-	some c : prevs[b]{
-		(c not in Bottom) implies (some a : q.quorum | votedFor[a,c,v])
-		all d : nexts[c] & prevs[b] { 
-			all a: q.quorum | notVotedFor[a,d]
-		}
-	}
+//	some c : prevs[b]{
+//		(c not in Bottom) implies (some a : q.quorum | votedFor[a,c,v])
+//		all d : nexts[c] & prevs[b] { 
+//			all a: q.quorum | notVotedFor[a,d]
+//		}
+//	}
 }
 
 pred preForVoting[a: Acceptor, b: Ballot, v: Value] {
