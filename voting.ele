@@ -21,9 +21,8 @@ sig Quorum {
 //Incrementa o valor do maxBallot
 pred increaseMaxBal[a: Acceptor, b: Ballot] {
 	lt[a.maxBal, b]
-	a.maxBal' = b
+	maxBal' = maxBal ++ a->b
 	votes' = votes
-	all acc: Acceptor - a | acc.maxBal' = acc.maxBal
 }
 //Não faz qualquer alteração em relação ao estado anterior
 pred nop {
@@ -89,7 +88,7 @@ fact Init {
 	no votes
 	some Quorum
 	all q:Quorum | some q.quorum
-	all disj q1,q2:Quorum | some (q1.quorum & q2.quorum)
+	all disj q1,q2:Quorum | some (q1.quorum & q2.quorum) and (q1.quorum != q2.quorum)
 	some Acceptor
 	maxBal = Acceptor -> Bottom	
 }
@@ -112,25 +111,43 @@ pred chosenAt[b: Ballot, v: Value] {
 }
 
 run Chosen{
+	#Quorum = 2
 	all q:Quorum | #q.quorum > 1
 	eventually( (some b:Ballot, v:Value | chosenAt[b,v] ))
 }
 
+//Functions for theme
+fun voters : set Acceptor{
+	votes.Value.Ballot
+}
 
+fun chosen : lone Value {
+	{v:Value | some b:Ballot | chosenAt[b,v]}
+}
 
+fun chosenQ : lone Quorum{
+	{q:Quorum | all a : q.quorum | some b:Ballot,v:Value | votedFor[a,b,v]}
+}
+
+fun chosenVotes : Acceptor -> Value {
+	{a : Acceptor , v:Value | some q:Quorum, b:Ballot | a in q.quorum and chosenAt[b,v] and q in chosenQ}
+}
+
+fun uvotes : set votes {
+	{votes - Acceptor->Ballot->chosen}
+}
 //Inevitavelmente existe um ballot e um valor que vão ser escolhidos por um quorum
 
 fact weakFairness {
 	all a: Acceptor, b:Ballot, v:Value | (always eventually preForVoting[a,b,v]) implies (eventually always voteFor[a, b, v])
 	all a: Acceptor, b: Ballot         | (eventually always lt[a.maxBal, b]) implies (always eventually increaseMaxBal[a, b])
-
 }
 
 assert Chosen {
 	some v: Value, b: Ballot | eventually always chosenAt[b,v]
 }
 
-check Chosen
+check Chosen for 3 but 10 Ballot
 
 //Um único voto
 pred oneVote {

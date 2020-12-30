@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Ballots"/>
+   <type name="Int"/>
+   <type name="Quorum"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="ordering/Ord"/>
+   <type name="seq/Int"/>
+   <set name="$Chosen_b" type="Ballot"/>
+   <set name="$Chosen_v" type="Value"/>
+   <set name="$chosenAt_q" type="Quorum"/>
+</node>
+
+<node color="Blue">
+   <set name="$chosenQ" type="Quorum"/>
+   <set name="$voters" type="Acceptor"/>
+</node>
+
+<node color="Green">
+   <set name="$chosen" type="Value"/>
+</node>
+
+<node shape="Ellipse">
+   <type name="Value"/>
+</node>
+
+<node shape="Hexagon">
+   <type name="Acceptor"/>
+</node>
+
+<node shape="Inv Trapezoid" color="Black">
+   <type name="Bottom"/>
+</node>
+
+<node shape="Trapezoid" color="Gray">
+   <type name="Ballot"/>
+</node>
+
+<edge color="Black" style="inherit">
+   <relation name="maxBal"> <type name="Acceptor"/> <type name="Ballots"/> </relation>
+</edge>
+
+<edge color="Green">
+   <relation name="$chosenVotes"> <type name="Acceptor"/> <type name="Value"/> </relation>
+</edge>
+
+<edge color="Red">
+   <relation name="quorum"> <type name="Quorum"/> <type name="Acceptor"/> </relation>
+</edge>
+
+<edge visible="no" attribute="no">
+   <relation name="votes"> <type name="Acceptor"/> <type name="Ballot"/> <type name="Value"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="$uvotes"> <type name="Acceptor"/> <type name="Ballot"/> <type name="Value"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
