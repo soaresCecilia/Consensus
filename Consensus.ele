@@ -1,3 +1,5 @@
+module Consensus
+
 sig Values{}
 
 var sig chosen in Values{}

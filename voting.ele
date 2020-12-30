@@ -1,4 +1,5 @@
 open util/ordering[Ballots]
+//open Consensus
 
 abstract sig Ballots{}
 
@@ -46,18 +47,17 @@ número inferior a b
 */
 
 pred showsSafeAt[q: Quorum, b: Ballot, v: Value]{
-	//from now on, no acceptor in Q can ever vote in any ballot < b
 	all acc: q.quorum | gte[acc.maxBal, b]
-	/*	For some c with either c= -1 or c is a ballot number < b
-		Either c = -1 or some acceptor acc in q voted for v in ballot c
-		No acceptor in q voted in any ballot d with c < d < b
-	*/
-	some c : prevs[b]{
+	//ir buscar o valor do maior ballot votado por alguém do quorum, para ballots inferiores a b
+	//quando c é vazio (ainda não houve votos), nenhum membro vota mas pode incrementar o maxBal)
+	let c = max[prevs[b] & q.quorum.votes.Value] | c.(Acceptor.votes) = v
+ 														
+	/*some c : prevs[b]{
 		(c not in Bottom) implies (some a : q.quorum | votedFor[a,c,v])
 		all d : nexts[c] & prevs[b] { 
 			all a: q.quorum | notVotedFor[a,d]
 		}
-	}
+	}*/
 }
 
 pred preForVoting[a: Acceptor, b: Ballot, v: Value] {
@@ -82,7 +82,7 @@ todos os acceptors esteja a -1, que os outros Ballots sejam maior que -1 e que
 não haja ballots com o mesmo número
 */
 
-fact Init {
+pred Init {
 	min[Ballots] = Bottom
 	some Ballot
 	no votes
@@ -99,7 +99,7 @@ Uma transição de estado implica um acceptor aumentar o seu maxBal, votar
 num determinado Ballot ou não acontecer nada
 */
 
-fact Next {
+pred Next {
 	always (some a: Acceptor, b: Ballot, v:Value {
 		increaseMaxBal[a,b] or voteFor[a, b, v] or nop
 	})
@@ -115,6 +115,10 @@ run Chosen{
 	eventually( (some b:Ballot, v:Value | chosenAt[b,v] ))
 }
 
+fact{
+	Init
+	Next
+}
 
 
 
@@ -137,9 +141,7 @@ pred oneVote {
 	all a: Acceptor, b: Ballot, v, w: Value | votedFor[a,b,v] and votedFor[a,b,w] implies v=w
 }
 
-
 //Dois acceptors que votam no mesmo ballot votam no mesmo valor
-
 pred oneVotePerBallot{
 	all disj a1, a2: Acceptor, b: Ballot, v1, v2: Value | votedFor[a1,b,v1] and votedFor[a2,b,v2] implies v1=v2
 }
