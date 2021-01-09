@@ -1,0 +1,97 @@
+open util/ordering[Ballots]
+
+abstract sig Ballots{}
+
+sig Ballot extends Ballots{}
+
+sig Bottom extends Ballots{}
+
+sig Value{}
+
+sig Acceptor {
+	var votes: Ballot -> Value,
+	var maxBal: one Ballots 
+}
+
+sig Network {
+	var messages : set Message
+}
+
+sig Quorum {
+	quorum: set Acceptor
+}
+
+abstract sig Message{
+	ballot: one Ballot
+}
+
+sig M1A extends Message{}
+
+sig M1B extends Message{
+	acc: one Acceptor,
+	mbal: one Ballot,
+	mval: lone Value
+}
+
+sig M2A extends Message{
+	val: one Value
+}
+
+sig M2B extends Message{
+	acc: one Acceptor,
+	val: one Value
+}
+
+fact Init {
+	min[Ballots] = Bottom
+	no Network
+	all a: Acceptor | a.maxBal = Bottom
+	some Message
+	some Ballot
+	no votes
+	some Quorum
+	all q:Quorum | some q.quorum
+	all disj q1,q2:Quorum | some (q1.quorum & q2.quorum) and (q1.quorum != q2.quorum)
+	some Acceptor
+}
+
+pred nop {
+	messages' = messages
+	votes' = votes
+	maxBal' = maxBal
+}
+
+
+pred send[m: Message] {
+	Network' = Network + m
+}
+
+
+pred phase1A[b: Ballot] {
+	one m: Message | m in M1A and m.ballot = b and send[m]
+	votes' = votes
+	maxBal' = maxBal
+}
+
+pred phase1B[a: Acceptor]{
+	some m: M1A {
+		m in Network.messages 
+		gt[m.ballot, a.maxBal]
+		maxBal' = maxBal ++ a->m.ballot
+		one m1b: M1B | m1b.acc = a and m1b.ballot = m.ballot 
+					and m1b.mbal = a.maxBal and m1b.mval = Ballot.(a.votes)
+					and send[m1b]
+	}
+	votes' = votes
+} 
+
+
+pred phase2A[b: Ballot, v: Value]{
+	some m: M2A | m.ballot = b implies no m & Network.messages
+	//some q: Quorum.quorum |
+}
+
+
+
+
+
