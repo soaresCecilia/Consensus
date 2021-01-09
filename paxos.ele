@@ -73,13 +73,17 @@ pred phase1A[b: Ballot] {
 	maxBal' = maxBal
 }
 
+fun maxVBal[a:Acceptor] : lone Value {
+	{max[a.votes.Value].(a.votes)}
+}
+
 pred phase1B[a: Acceptor]{
 	some m: M1A {
 		m in Network.messages 
 		gt[m.ballot, a.maxBal]
 		maxBal' = maxBal ++ a->m.ballot
 		one m1b: M1B | m1b.acc = a and m1b.ballot = m.ballot 
-					and m1b.mbal = a.maxBal and m1b.mval = Ballot.(a.votes)
+					and m1b.mbal = a.maxBal and m1b.mval = maxVBal[a]
 					and send[m1b]
 	}
 	votes' = votes
@@ -90,8 +94,6 @@ pred phase2A[b: Ballot, v: Value]{
 	some m: M2A | m.ballot = b implies no m & Network.messages
 	//some q: Quorum.quorum |
 }
-
-
 
 
 
