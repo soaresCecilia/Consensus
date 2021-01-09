@@ -1,0 +1,29 @@
+sig Acceptor{
+	var votes: Ballot->Value,
+	var maxBal: one Ballots
+}
+
+sig Ballot{}
+
+sig Quorum{
+	quorum : set Acceptor
+}
+
+sig Value {}
+
+abstract sig Message{
+	ballot : one Ballot
+}
+
+var sig Sent in Message{}
+
+sig P1A extends Message{}
+sig P1B extends Message{
+	acceptor : one Acceptor	
+}
+sig P2A extends Message{}
+sig P2B extends Message{}
+
+fun maxVBal[a:Acceptor] : one Acceptor {
+	
+}

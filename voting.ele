@@ -5,7 +5,7 @@ abstract sig Ballots{}
 
 sig Ballot extends Ballots{}
 
-one sig Bottom extends Ballots{}
+//one sig Bottom extends Ballots{}
 
 sig Value{}
 
@@ -50,7 +50,7 @@ pred showsSafeAt[q: Quorum, b: Ballot, v: Value]{
 	//ir buscar o valor do maior ballot votado por alguém do quorum, para ballots inferiores a b
 	//quando c é vazio (ainda não houve votos), nenhum membro vota mas pode incrementar o maxBal)
 	let c = max[prevs[b] & q.quorum.votes.Value] | some c implies c.(Acceptor.votes) = v
- 														
+ 	let c = max[q.quorum.votes.Value] | some c implies (c.(Acceptor.votes) = v and gte[b,c])													
 //	some c : prevs[b]{
 //		(c not in Bottom) implies (some a : q.quorum | votedFor[a,c,v])
 //		all d : nexts[c] & prevs[b] { 
@@ -83,14 +83,15 @@ não haja ballots com o mesmo número
 */
 
 fact Init {
-	min[Ballots] = Bottom
+	//min[Ballots] = Bottom
 	some Ballot
 	no votes
 	some Quorum
 	all q:Quorum | some q.quorum
 	all disj q1,q2:Quorum | some (q1.quorum & q2.quorum) and (q1.quorum != q2.quorum)
 	some Acceptor
-	maxBal = Acceptor -> Bottom	
+	//maxBal = Acceptor -> Bottom
+	no maxBal	
 }
 
 
@@ -147,7 +148,7 @@ assert Chosen {
 	some v: Value, b: Ballot | eventually always chosenAt[b,v]
 }
 
-check Chosen for 3 but 10 Ballot
+check Chosen
 
 //Um único voto
 pred oneVote {
