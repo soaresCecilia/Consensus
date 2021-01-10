@@ -68,7 +68,11 @@ pred send[m: Message] {
 
 
 pred phase1A[b: Ballot] {
-	one m: Message | m in M1A and m.ballot = b and send[m]
+	one m: Message {
+		m in M1A 
+		m.ballot = b 
+		send[m]
+	}
 	votes' = votes
 	maxBal' = maxBal
 }
@@ -89,11 +93,16 @@ pred phase1B[a: Acceptor]{
 	votes' = votes
 } 
 
+fun quorumM1B[q:Quorum] : set M1B{
+	{m : (Network.messages & M1B) | m.acc in q.quorum}
+}
 
 pred phase2A[b: Ballot, v: Value]{
 	some m: M2A | m.ballot = b implies no m & Network.messages
-	//some q: Quorum.quorum |
+	some q:Quorum{
+		(q.quorum) in (ballot.b & M1B & Network.messages).acc
+		  
+	}
 }
 
-
-
+run example{}
