@@ -11,7 +11,7 @@ sig Value{}
 
 sig Acceptor{
 	var votes: Ballot->Value,
-	var maxBal: one Ballots
+	var maxBal: lone Ballots
 }
 
 sig Quorum {
@@ -184,6 +184,7 @@ assert Choosable {
 
 check Choosable
 
+run Example{}
 
 
 
